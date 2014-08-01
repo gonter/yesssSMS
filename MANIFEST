@@ -3,4 +3,3 @@ MANIFEST
 README
 t/yesssSMS.t
 lib/yesssSMS.pm
-META.yml                                 Module meta-data (added by MakeMaker)

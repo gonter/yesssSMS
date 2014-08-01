@@ -29,7 +29,7 @@ our @EXPORT = qw(
 	
 );
 
-our $VERSION = '1.00';
+our $VERSION = '2.00';
 
 sub new
 {
@@ -59,7 +59,8 @@ sub login
 	$self->{UA}->cookie_jar(HTTP::Cookies->new);
 
 	# go to start page
-	$self->{CONTENT}=$self->{UA}->get("https://www.yesss.at/");
+	#$self->{CONTENT}=$self->{UA}->get("https://www.yesss.at/");
+	$self->{CONTENT}=$self->{UA}->get("https://www.yesss.at/kontomanager.at/");
 
 	# if there was an error on the start page, stop
 	if (!($self->{CONTENT}->is_success))
@@ -70,7 +71,8 @@ sub login
 	}
 
 	# do the login post
-	$self->{CONTENT}=$self->{UA}->post("https://www.yesss.at/kontomanager.php",{'login_rufnummer' => $self->{TELNR},'login_passwort' => $self->{PASS}});
+	#$self->{CONTENT}=$self->{UA}->post("https://www.yesss.at/kontomanager.php",{'login_rufnummer' => $self->{TELNR},'login_passwort' => $self->{PASS}});
+	$self->{CONTENT}=$self->{UA}->post("https://www.yesss.at/kontomanager.at/index.php",{'login_rufnummer' => $self->{TELNR},'login_passwort' => $self->{PASS}});
 
 	#print "Returncode during login: ".$self->{CONTENT}->code."\n";
 	#print "Content during login: ".$self->{CONTENT}->decoded_content."\n";
@@ -94,6 +96,7 @@ sub login
 		{
 			$self->{LASTERROR}='Error during post-login redirect';
 			$self->{RETURNCODE}=4;
+			print $self->{CONTENT}->status_line;
 			return 4;
 		}
 	}
@@ -116,12 +119,12 @@ sub sendmessage
 		return 1;
 	}
 
-	if (length($message)>160)
-	{
-		$self->{LASTERROR}='Shortmessage too long';
-		$self->{RETURNCODE}=2;
-		return 2;
-	}
+	#if (length($message)>160)
+	#{
+	#	$self->{LASTERROR}='Shortmessage too long';
+	#	$self->{RETURNCODE}=2;
+	#	return 2;
+	#}
 	if (!($telnr=~/^00/) || (length($telnr)<14))
 	{
 		$self->{LASTERROR}='Invalid destination (not Austria or too short)';
@@ -130,7 +133,7 @@ sub sendmessage
 	}
 
 	# go to correct menu item
-	$self->{CONTENT}=$self->{UA}->post("https://www.yesss.at/kontomanager/vertrag_websms.php");
+	$self->{CONTENT}=$self->{UA}->post("https://www.yesss.at/kontomanager.at/websms.php");
 
 	# stop on error
 	if (!($self->{CONTENT}->is_success))
@@ -141,7 +144,7 @@ sub sendmessage
 	}
 
 	# try to send message
-	$self->{CONTENT}=$self->{UA}->post("https://www.yesss.at/kontomanager/websms_send.php",{'to_netz' => 'a','to_nummer' => $telnr,'nachricht' => $message});
+	$self->{CONTENT}=$self->{UA}->post("https://www.yesss.at/kontomanager.at/websms_send.php",{'to_netz' => 'a','to_nummer' => $telnr,'nachricht' => $message});
 
 	# stop on error
 	if (!($self->{CONTENT}->is_success))
@@ -176,7 +179,7 @@ sub logout
 	}
 
 	# post the logout url
-	$self->{CONTENT}=$self->{UA}->post("https://www.yesss.at/kontomanager.php?dologout=1");
+	$self->{CONTENT}=$self->{UA}->post("https://www.yesss.at/kontomanager.at/index.php?dologout=1");
 
 	# if there was an error during logout, stop
 	if (!($self->{CONTENT}->is_success))
@@ -372,6 +375,9 @@ The following method returns the LWP::UserAgent last return content:
 
 Original version
 
+=item 2.00
+
+Adopted for the new website being online since August 1st, 2014
 
 =back
 
