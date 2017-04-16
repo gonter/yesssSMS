@@ -125,7 +125,7 @@ sub sendmessage
 	#	$self->{RETURNCODE}=2;
 	#	return 2;
 	#}
-	if (!($telnr=~/^00/) || (length($telnr)<14))
+	if (!($telnr=~/^00/) || (length($telnr)<12))
 	{
 		$self->{LASTERROR}='Invalid destination (not Austria or too short)';
 		$self->{RETURNCODE}=3;
