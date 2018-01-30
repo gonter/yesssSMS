@@ -1,6 +1,6 @@
 package yesssSMS;
 
-use 5.014002;
+# use 5.014002;
 use strict;
 use warnings;
 use HTML::Parser;
