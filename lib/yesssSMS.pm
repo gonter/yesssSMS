@@ -7,6 +7,8 @@ use HTML::Parser;
 use LWP::UserAgent;
 use HTTP::Cookies;
 
+use Data::Dumper;
+my $debug= 0;
 
 require Exporter;
 
@@ -29,7 +31,7 @@ our @EXPORT = qw(
 	
 );
 
-our $VERSION = '2.00';
+our $VERSION = '2.01';
 
 sub new
 {
@@ -108,8 +110,8 @@ sub login
 
 sub sendmessage
 {
-	my $self = shift;
-	my ($telnr,$message)=@_;
+	my $self= shift;
+	my ($telnr, $message)= @_;
 
 	# only send message when login was successful
 	if ($self->{LOGINSTATE} == 0)
@@ -133,18 +135,23 @@ sub sendmessage
 	}
 
 	# go to correct menu item
-	$self->{CONTENT}=$self->{UA}->post("https://www.yesss.at/kontomanager.at/websms.php");
+	$self->{CONTENT}= $self->{UA}->post("https://www.yesss.at/kontomanager.at/websms.php");
 
 	# stop on error
-	if (!($self->{CONTENT}->is_success))
+	unless ($self->{CONTENT}->is_success)
 	{
 		$self->{LASTERROR}='Error while selecting SMS menu';
 		$self->{RETURNCODE}=4;
 		return 4;
 	}
 
+	my $c= $self->{CONTENT}->decoded_content();
+	# print __LINE__, " content=[$c]\n" if ($debug);
+	my $v= parse_form($c);
+
 	# try to send message
-	$self->{CONTENT}=$self->{UA}->post("https://www.yesss.at/kontomanager.at/websms_send.php",{'to_netz' => 'a','to_nummer' => $telnr,'nachricht' => $message});
+	$self->{CONTENT}= $self->{UA}->post("https://www.yesss.at/kontomanager.at/websms_send.php",
+	       { to_netz => 'a', to_nummer => $telnr, nachricht => $message, token => $v->{token} } );
 
 	# stop on error
 	if (!($self->{CONTENT}->is_success))
@@ -157,6 +164,39 @@ sub sendmessage
 	$self->{LASTERROR}='Message sent successfully';
 	$self->{RETURNCODE}=0;
 	return 0;
+}
+
+sub parse_form
+{
+  my $c= shift;
+
+  my @c= split("\n", $c);
+  my $in_form= 0;
+  my %vars;
+  L: foreach my $l (@c)
+  {
+    # print "parse_form: in_form=$in_form l=[$l]\n";
+    if ($l =~ m#<form action='websms_send.php' name='sms' id='smsform' method='post' onSubmit="return validate\(\)">#)
+    {
+      $in_form= 1;
+      next L;
+    }
+
+    if ($in_form)
+    {
+      if ($l =~ m#</form>#) { $in_form= 0; next L; }
+      # print "parse_form: l=[$l]\n" if ($debug);
+
+      if ($l =~ m#<input type="hidden" name="(token)" value="([\da-f]+)">#)
+      {
+        $vars{$1}= $2;
+      }
+    }
+	}
+
+	# print __LINE__, " parse_form: vars=", Dumper(\%vars) if ($debug);
+
+	(wantarray) ? %vars : \%vars;
 }
 
 sub getLoginstate
